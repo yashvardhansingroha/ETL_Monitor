@@ -548,7 +548,7 @@ def get_snapshot_metadata():
         "market_date_range": "Not available",
         "recon_date_range": "Not available",
         "dq_latest_detected_at": "Not available",
-        "live_ingestion_status": "Not available (Static SQLite Snapshot · Read-Only UI)",
+        "live_ingestion_status": "Saved SQLite Snapshot · Read-Only UI (No live ingestion)",
         "secondary_fundamentals_source": "Not available (Single-source SEC EDGAR Company Facts)",
     }
     if DATABASE_PATH.exists():
@@ -1256,7 +1256,7 @@ def show_dataset_health():
             else "HEALTHY · 0 Flags"
         )
         render_metric_card(
-            "Stored Investigation Flags (Live DB Count)",
+            "Stored Investigation Flags (Snapshot)",
             f"{issue_count:,}",
             flag_badge,
             flag_tone,
