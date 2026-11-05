@@ -135,13 +135,17 @@ These results are labelled as statistical anomaly flags, not confirmed data erro
 
 ## 9. Dashboard
 
-The Streamlit dashboard has three pages:
+The Streamlit dashboard is a five-view, read-only investigation workspace:
 
-1. **Dataset Health** shows record counts, issue counts, DQ scores, severity mix, and reconciliation results.
-2. **Alerts Explorer** filters issues by company, severity, dimension, and rule.
-3. **Incident Drilldown** shows one issue with its observed value, expected threshold, source, and available SEC filing metadata.
+1. **Dataset Overview** shows snapshot provenance, full-dataset counts, company scores and reported/derived financial metrics with filters and CSV export.
+2. **Quality Investigations** filters flags by company, severity, dimension, rule, classification, source table and literal keyword, with linked record context and CSV export.
+3. **Reconciliation** separates overlapping MATCH/BREAK pairs from unmatched primary Yahoo rows, with filters, comparison exports and an isolated 10% break demonstration.
+4. **Record Detail** inspects a flagged observation or directly browses financial, market and reconciliation records, including multi-period context and source lineage.
+5. **Methodology** explains the twelve existing quality checks, thresholds, derivations, score heuristic, documented examples and limitations.
 
-The dashboard reads from SQLite and does not create a separate copy of the data.
+The dashboard opens SQLite with `mode=ro`; it cannot write to the saved snapshot. It does not fetch APIs, rerun ingestion or recalculate saved quality flags. Freshness checks measure age against the calendar date when `src/quality.py` runs, not against another record's date. The file modification timestamp is filesystem metadata, not an ingestion timestamp. Full-dataset and filtered counts are labeled separately, and IQR observations are investigation prompts rather than confirmed errors.
+
+**Live app:** https://financial-data-quality-monitor-yash.streamlit.app/
 
 ## 10. How to Run the Project
 
@@ -173,11 +177,13 @@ python src\quality.py
 
 The database loader replaces the previous MVP dataset. Run the quality engine after loading because a reload clears the previous `dq_issue` rows.
 
-### Run the controlled test
+### Run the tests
 
 ```powershell
 python -m unittest discover -s tests -p "test_*.py" -v
 ```
+
+Eight tests cover the injected-break rule, all five real Streamlit views, read-only enforcement, score/lineage consistency, reported/derived filters, CSV payloads, literal searches, empty selections and direct record browsing. Dashboard tests check the database SHA-256 before and after each case.
 
 ### Start the dashboard
 
@@ -189,19 +195,21 @@ Then open `http://localhost:8501`.
 
 ## 11. Current Results
 
-The current local database contains:
+The committed SQLite snapshot, checked on 2026-11-06, contains the following saved results. Its newest stored flag timestamp is **2026-08-27 14:39:09 UTC**; this is not a current live-data run.
 
 - 5 companies
-- 150 annual financial metric records
-- 1,270 Yahoo daily market-price records
+- 150 annual financial metric records: 135 directly reported and 15 derived
+- 1,275 Yahoo daily market-price records: 255 per company, from 2025-08-22 to 2026-08-27
 - 1,270 Yahoo/Nasdaq closing-price comparisons
 - 0 real reconciliation breaks
 - Largest real reconciliation variance of approximately 0.0000057%
-- 60 existing anomaly/DQ issues
+- 61 existing anomaly/DQ investigation flags
 
-The 60 issues consist of 57 LOW daily-return IQR flags and 3 MEDIUM AMZN net-income growth flags. There are currently no CRITICAL issues.
+The 61 saved flags consist of 58 LOW daily-return IQR observations and 3 MEDIUM AMZN net-income growth observations. There are no stored CRITICAL flags. These are saved quality-run results; opening the dashboard does not evaluate current staleness.
 
-The controlled reconciliation test successfully detects the deliberately introduced 10% break while leaving the production database unchanged.
+Five primary Yahoo rows (one per ticker on 2026-08-27) have no overlapping reconciliation pair: coverage is 1,270 / 1,275, or approximately 99.6%. Standalone unmatched Nasdaq rows are not stored in SQLite, so their count cannot be inferred from the joined comparison table. Older 1,270-price/60-flag figures described an earlier snapshot.
+
+The controlled reconciliation test detects the deliberately introduced 10% break in memory while leaving the saved database unchanged. The dashboard redesign preserves the ingestion code, quality rules, database schema and saved data.
 
 ## 12. Limitations
 
